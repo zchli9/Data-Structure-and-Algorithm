@@ -1,0 +1,257 @@
+\documentclass[UTF8]{ctexart}
+\usepackage{geometry, CJKutf8}
+\geometry{margin=1.5cm, vmargin={0pt,1cm}}
+\setlength{\topmargin}{-1cm}
+\setlength{\paperheight}{29.7cm}
+\setlength{\textheight}{25.3cm}
+
+% useful packages.
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\usepackage{layout}
+\usepackage{listings}
+\usepackage{float, caption}
+\usepackage{listings}
+\usepackage[usenames,dvipsnames]{xcolor}
+\lstset{
+    basicstyle=\ttfamily, basewidth=0.5em
+}
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+\lstset{ %
+backgroundcolor=\color{white},   % choose the background color
+basicstyle=\footnotesize\ttfamily,        % size of fonts used for the code
+columns=fullflexible,
+breaklines=true,                 % automatic line breaking only at whitespace
+captionpos=b,                    % sets the caption-position to bottom
+tabsize=4,
+commentstyle=\color{mygreen},    % comment style
+escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
+keywordstyle=\color{blue},       % keyword style
+stringstyle=\color{mymauve}\ttfamily,     % string literal style
+frame=single,
+rulesepcolor=\color{red!20!green!20!blue!20},
+% identifierstyle=\color{red},
+language=c++,
+}
+
+% some common command
+\newcommand{\dif}{\mathrm{d}}
+\newcommand{\avg}[1]{\left\langle #1 \right\rangle}
+\newcommand{\difFrac}[2]{\frac{\dif #1}{\dif #2}}
+\newcommand{\pdfFrac}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\OFL}{\mathrm{OFL}}
+\newcommand{\UFL}{\mathrm{UFL}}
+\newcommand{\fl}{\mathrm{fl}}
+\newcommand{\op}{\odot}
+\newcommand{\Eabs}{E_{\mathrm{abs}}}
+\newcommand{\Erel}{E_{\mathrm{rel}}}
+
+\begin{document}
+
+\pagestyle{fancy}
+\fancyhead{}
+\lhead{陈力豪, 3220103614}
+\chead{数据结构与算法第五次作业}
+\rhead{Oct.30th, 2024}
+
+\section{$remove$函数设计思路}
+经过修改的$remove$函数如下：
+\begin{lstlisting}[language=c++]
+    BinaryNode *detachMin(BinaryNode *&t){
+        if(t == nullptr){
+            return nullptr;
+        }
+        if(t->left == nullptr){
+            BinaryNode *minnode = t;
+            t = t->right;   //把当前节点改为右子树，在递归回归时可以自动接上
+            return minnode;
+        }
+        return detachMin(t->left);
+    }
+    void remove(const Comparable &x, BinaryNode *&t) {
+        if (t == nullptr) {
+            return;  
+        }
+        if (x < t->element) {
+            remove(x, t->left);
+        } 
+        else if (x > t->element) {
+            remove(x, t->right);
+        } 
+        else {  
+            if (t->left != nullptr && t->right != nullptr) {  
+                BinaryNode *minNode = detachMin(t->right);  //找到右子树最小节点并移除，然后替代
+                minNode->left = t->left;  
+                minNode->right = t->right;  
+                delete t;  
+                t = minNode;  
+            } 
+            else {  
+                BinaryNode *oldNode = t;
+                t = (t->left != nullptr) ? t->left : t->right;  
+                delete oldNode;
+            }
+        }
+    }
+\end{lstlisting}\par
+首先设计了$detachMin$函数，找到子树中的最小节点，用一个$minnode$保存最小节点并返回，并把当前的$t$节点设置为$t$的右子树，这样在递归返回时不会破坏树的结构，能够自动接上这个右子树；然后将$remove$函数的逻辑改为先用$detachMin$函数找到右子树的最小节点并在右子树上移除这个节点，然后用这个最小节点替代原始节点，最后删除原节点，完成移除操作。
+\section{测试函数设计和测试结果}
+测试函数如下：
+\begin{lstlisting}[language=c++]
+    #include <iostream>
+    #include "BinarySearchTree.h"
+    
+    int main() {
+        BinarySearchTree<int> bst;
+    
+        // Inserting elements
+        bst.insert(20);
+        bst.insert(10);
+        bst.insert(30);
+        bst.insert(5);
+        bst.insert(15);
+        bst.insert(25);
+        bst.insert(35);
+    
+        std::cout << "Initial tree (in-order traversal):" << std::endl;
+        bst.printTree();
+    
+        std::cout << "\nRemoving a leaf node (5):" << std::endl;
+        bst.remove(5);
+        bst.printTree();
+    
+        std::cout << "\nRemoving a node with one child (10):" << std::endl;
+        bst.remove(10);
+        bst.printTree();
+    
+        std::cout << "\nRemoving a node with two children (30):" << std::endl;
+        bst.remove(30);
+        bst.printTree();
+    
+        std::cout << "\nRemoving the root node (20):" << std::endl;
+        bst.remove(20);
+        bst.printTree();
+    
+        std::cout << "\nAttempting to remove an element not in the tree (40):" << std::endl;
+        bst.remove(40);
+        bst.printTree();
+    
+        std::cout << "\nRemoving all elements to make the tree empty:" << std::endl;
+        bst.remove(15);
+        bst.remove(25);
+        bst.remove(35);
+        bst.printTree();
+    
+        return 0;
+    }
+\end{lstlisting}
+测试思路为：先建立一棵树：
+\begin{lstlisting}
+        20
+       /  \
+      10  30
+     / \  / \
+    5  15 25 35
+\end{lstlisting}
+首先，删除叶子节点5：
+\begin{lstlisting}
+       20
+      /  \
+    10   30
+     \   / \
+     15 25 35
+\end{lstlisting}
+然后，删除有一个子节点的节点10：
+\begin{lstlisting}
+      20
+     /  \
+    15  30
+       /  \
+      25  35
+\end{lstlisting}
+然后，删除有两个子节点的节点30：
+\begin{lstlisting}
+      20
+     /  \
+    15  35
+       /
+     25
+\end{lstlisting}
+删除节点20：
+\begin{lstlisting}
+      25
+     /  \
+    15  35
+\end{lstlisting}
+测试删除一个不存在的节点，最后清空树。\par
+测试结果如下，一切正常。
+\begin{lstlisting}
+    Initial tree (in-order traversal):
+    5
+    10
+    15
+    20
+    25
+    30
+    35
+    
+    Removing a leaf node (5):
+    10
+    15
+    20
+    25
+    30
+    35
+    
+    Removing a node with one child (10):
+    15
+    20
+    25
+    30
+    35
+    
+    Removing a node with two children (30):
+    15
+    20
+    25
+    35
+    
+    Removing the root node (20):
+    15
+    25
+    35
+    
+    Attempting to remove an element not in the tree (40):
+    15
+    25
+    35
+    
+    Removing all elements to make the tree empty:
+    Empty tree
+\end{lstlisting}
+我用 valgrind 进行测试，发现没有发生内存泄露。
+\begin{lstlisting}
+    ==4852== 
+    ==4852== HEAP SUMMARY:
+    ==4852==     in use at exit: 0 bytes in 0 blocks
+    ==4852==   total heap usage: 9 allocs, 9 frees, 74,920 bytes allocated
+    ==4852== 
+    ==4852== All heap blocks were freed -- no leaks are possible
+    ==4852== 
+    ==4852== For lists of detected and suppressed errors, rerun with: -s
+    ==4852== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)      
+\end{lstlisting}
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
